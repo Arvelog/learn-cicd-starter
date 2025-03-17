@@ -17,7 +17,7 @@ func TestGetAPIKey(t *testing.T) {
 		{
 			name:          "Valid API Key",
 			headers:       http.Header{"Authorization": []string{"ApiKey test-api-key-12345"}},
-			expectedKey:   "wrong-expected-key", // This will intentionally make the test fail
+			expectedKey:   "test-api-key-12345", // Corrected to match actual expected output
 			expectedError: nil,
 		},
 		{
@@ -27,7 +27,24 @@ func TestGetAPIKey(t *testing.T) {
 			expectedError:  ErrNoAuthHeaderIncluded,
 			errorSubstring: "no authorization header",
 		},
-		// Other test cases remain the same...
+		{
+			name:           "Malformed Header - No ApiKey Prefix",
+			headers:        http.Header{"Authorization": []string{"Bearer test-api-key-12345"}},
+			expectedKey:    "",
+			errorSubstring: "malformed authorization header",
+		},
+		{
+			name:           "Malformed Header - No Space",
+			headers:        http.Header{"Authorization": []string{"ApiKeytest-api-key-12345"}},
+			expectedKey:    "",
+			errorSubstring: "malformed authorization header",
+		},
+		{
+			name:           "Malformed Header - Empty",
+			headers:        http.Header{"Authorization": []string{""}},
+			expectedKey:    "",
+			errorSubstring: "malformed authorization header",
+		},
 	}
 
 	for _, tc := range testCases {
