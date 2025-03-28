@@ -19,3 +19,13 @@ jobs:
       - name: Build application
         run: ./scripts/buildprod.sh
         shell: bash
+      
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+          project_id: notely-455111
+      
+      - name: Build and push Docker image
+        run: |
+          gcloud builds submit --tag us-central1-docker.pkg.dev/notely-455111/notely-ar-repo/notely:latest .
