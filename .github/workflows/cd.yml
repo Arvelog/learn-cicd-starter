@@ -20,10 +20,14 @@ jobs:
         run: ./scripts/buildprod.sh
         shell: bash
       
-      - name: Set up Google Cloud SDK
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          
+      - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
           project_id: notely-455111
       
       - name: Build and push Docker image
