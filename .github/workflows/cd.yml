@@ -7,6 +7,11 @@ on:
 jobs:
   Deploy:
     runs-on: ubuntu-latest
+    
+    # Add environment variables section
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
