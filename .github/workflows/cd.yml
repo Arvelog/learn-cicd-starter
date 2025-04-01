@@ -15,85 +15,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
-      - name: Make scripts executable
-        run: |
-          chmod +x ./scripts/buildprod.sh
-          chmod +x ./scripts/migrateup.sh
       
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: 'stable'
-          
-      # We're skipping Turso CLI installation as we'll use libsql-cli instead
       
       - name: Build application
         run: ./scripts/buildprod.sh
-        shell: bash
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          
-      - name: Run database migrations
-        run: |
-          # Install Turso client locally in the current directory
-          npm init -y
-          npm install @libsql/client
-          
-          # Create a Node.js script to execute the migrations
-          cat > migrate.js << 'EOF'
-          const { createClient } = require('@libsql/client');
-          
-          async function runMigrations() {
-            try {
-              // Create client using the DATABASE_URL environment variable
-              const client = createClient({
-                url: process.env.DATABASE_URL
-              });
-              
-              console.log("Connected to database, running migrations...");
-              
-              // Users table
-              await client.execute(`
-                CREATE TABLE IF NOT EXISTS users (
-                  id TEXT PRIMARY KEY,
-                  created_at TEXT NOT NULL,
-                  updated_at TEXT NOT NULL,
-                  name TEXT NOT NULL,
-                  api_key TEXT UNIQUE NOT NULL
-                )
-              `);
-              
-              console.log("Users table created/verified");
-              
-              // Notes table
-              await client.execute(`
-                CREATE TABLE IF NOT EXISTS notes (
-                  id TEXT PRIMARY KEY,
-                  created_at TEXT NOT NULL,
-                  updated_at TEXT NOT NULL,
-                  note TEXT NOT NULL,
-                  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE
-                )
-              `);
-              
-              console.log("Notes table created/verified");
-              console.log("All migrations completed successfully!");
-              
-            } catch (error) {
-              console.error("Migration error:", error);
-              process.exit(1);
-            }
-          }
-          
-          runMigrations();
-          EOF
-          
-          # Run the migration script
-          node migrate.js
         shell: bash
       
       - name: Authenticate to Google Cloud
