@@ -39,8 +39,9 @@ jobs:
           
       - name: Run database migrations
         run: |
-          # Install Turso client directly from npm
-          npm install -g @libsql/client
+          # Install Turso client locally in the current directory
+          npm init -y
+          npm install @libsql/client
           
           # Create a Node.js script to execute the migrations
           cat > migrate.js << 'EOF'
