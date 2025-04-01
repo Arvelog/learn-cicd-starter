@@ -25,9 +25,6 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: 'stable'
-          
-      - name: Install goose
-        run: go install github.com/pressly/goose/v3/cmd/goose@latest
       
       - name: Build application
         run: ./scripts/buildprod.sh
@@ -46,10 +43,20 @@ jobs:
       - name: Build and push Docker image
         run: |
           gcloud builds submit --tag us-central1-docker.pkg.dev/notely-455111/notely-ar-repo/notely:latest .
-          
-      # Run migrations after building image but before deploying
+      
+      # Run migrations with standard goose directly instead of Turso-specific goose
       - name: Run database migrations
-        run: ./scripts/migrateup.sh
+        run: |
+          # Install goose
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+          
+          # Extract database path (without auth token) for displaying in logs
+          DB_PATH=$(echo $DATABASE_URL | cut -d'?' -f1)
+          echo "Running migrations on $DB_PATH"
+          
+          # Run migration script
+          cd sql/schema
+          goose sqlite3 "$DATABASE_URL" up
         shell: bash
       
       - name: Deploy to Cloud Run
