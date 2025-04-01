@@ -20,9 +20,16 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: 'stable'
+          
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
       
       - name: Build application
         run: ./scripts/buildprod.sh
+        shell: bash
+        
+      - name: Run database migrations
+        run: ./scripts/migrateup.sh
         shell: bash
       
       - name: Authenticate to Google Cloud
