@@ -30,13 +30,45 @@ jobs:
         run: |
           curl -sSfL https://get.tur.so/install.sh | bash
           echo "$HOME/.turso/bin" >> $GITHUB_PATH
+          # Make turso available in current shell
+          export PATH=$PATH:$HOME/.turso/bin
       
       - name: Build application
         run: ./scripts/buildprod.sh
         shell: bash
         
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
       - name: Run database migrations
-        run: ./scripts/migrateup.sh
+        run: |
+          # Create a direct migration script
+          cat > ./direct-migrate.sh << 'EOF'
+          #!/bin/bash
+          
+          # Install libsql-cli for direct SQL execution
+          npm install -g libsql-cli
+          
+          # Process each migration file in order
+          for SQL_FILE in sql/schema/*_*.sql; do
+            echo "Processing $SQL_FILE"
+            
+            # Extract the SQL statements between "-- +goose Up" and "-- +goose Down"
+            UP_SQL=$(sed -n '/-- +goose Up/,/-- +goose Down/p' "$SQL_FILE" | grep -v -- "-- +goose")
+            
+            # Execute the SQL against the Turso database
+            echo "$UP_SQL" | libsql-cli "$DATABASE_URL"
+            
+            echo "Migration from $SQL_FILE completed"
+          done
+          
+          echo "All migrations completed!"
+          EOF
+          
+          chmod +x ./direct-migrate.sh
+          ./direct-migrate.sh
         shell: bash
       
       - name: Authenticate to Google Cloud
