@@ -15,11 +15,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        
+      - name: Make scripts executable
+        run: |
+          chmod +x ./scripts/buildprod.sh
+          chmod +x ./scripts/migrateup.sh
       
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: 'stable'
+          
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
       
       - name: Build application
         run: ./scripts/buildprod.sh
@@ -39,6 +47,11 @@ jobs:
         run: |
           gcloud builds submit --tag us-central1-docker.pkg.dev/notely-455111/notely-ar-repo/notely:latest .
           
+      # Run migrations after building image but before deploying
+      - name: Run database migrations
+        run: ./scripts/migrateup.sh
+        shell: bash
+      
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy notely --image us-central1-docker.pkg.dev/notely-455111/notely-ar-repo/notely:latest --region us-central1 --allow-unauthenticated --project notely-455111 --max-instances=4
