@@ -5,4 +5,5 @@ if [ -f .env ]; then
 fi
 
 cd sql/schema
-goose turso $DATABASE_URL up
+# Use the sqlite3 driver instead of "turso"
+goose sqlite3 "$DATABASE_URL" up
