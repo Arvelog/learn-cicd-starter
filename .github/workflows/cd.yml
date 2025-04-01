@@ -44,35 +44,31 @@ jobs:
           
       - name: Run database migrations
         run: |
-          # Replace the existing migration script with our updated version
-          cp -f ./scripts/migrateup.sh ./scripts/migrateup.sh.bak
-          cat > ./scripts/migrateup.sh << 'EOL'
-#!/bin/bash
-
-if [ -f .env ]; then
-    source .env
-fi
-
-# Install libsql-cli for direct SQL execution
-npm install -g libsql-cli
-
-# Process each migration file in order
-for SQL_FILE in sql/schema/*_*.sql; do
-  echo "Processing $SQL_FILE"
-  
-  # Extract the SQL statements between "-- +goose Up" and "-- +goose Down"
-  UP_SQL=$(sed -n '/-- +goose Up/,/-- +goose Down/p' "$SQL_FILE" | grep -v -- "-- +goose")
-  
-  # Execute the SQL against the Turso database
-  echo "$UP_SQL" | libsql-cli "$DATABASE_URL"
-  
-  echo "Migration from $SQL_FILE completed"
-done
-
-echo "All migrations completed!"
-EOL
-          chmod +x ./scripts/migrateup.sh
-          ./scripts/migrateup.sh
+          # Create a direct migration script
+          cat > ./direct-migrate.sh << 'EOF'
+          #!/bin/bash
+          
+          # Install libsql-cli for direct SQL execution
+          npm install -g libsql-cli
+          
+          # Process each migration file in order
+          for SQL_FILE in sql/schema/*_*.sql; do
+            echo "Processing $SQL_FILE"
+            
+            # Extract the SQL statements between "-- +goose Up" and "-- +goose Down"
+            UP_SQL=$(sed -n '/-- +goose Up/,/-- +goose Down/p' "$SQL_FILE" | grep -v -- "-- +goose")
+            
+            # Execute the SQL against the Turso database
+            echo "$UP_SQL" | libsql-cli "$DATABASE_URL"
+            
+            echo "Migration from $SQL_FILE completed"
+          done
+          
+          echo "All migrations completed!"
+          EOF
+          
+          chmod +x ./direct-migrate.sh
+          ./direct-migrate.sh
         shell: bash
       
       - name: Authenticate to Google Cloud
