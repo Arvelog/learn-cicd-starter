@@ -26,12 +26,7 @@ jobs:
         with:
           go-version: 'stable'
           
-      - name: Install Turso CLI
-        run: |
-          curl -sSfL https://get.tur.so/install.sh | bash
-          echo "$HOME/.turso/bin" >> $GITHUB_PATH
-          # Make turso available in current shell
-          export PATH=$PATH:$HOME/.turso/bin
+      # We're skipping Turso CLI installation as we'll use libsql-cli instead
       
       - name: Build application
         run: ./scripts/buildprod.sh
@@ -44,31 +39,29 @@ jobs:
           
       - name: Run database migrations
         run: |
-          # Create a direct migration script
-          cat > ./direct-migrate.sh << 'EOF'
-          #!/bin/bash
-          
           # Install libsql-cli for direct SQL execution
           npm install -g libsql-cli
           
-          # Process each migration file in order
-          for SQL_FILE in sql/schema/*_*.sql; do
-            echo "Processing $SQL_FILE"
-            
-            # Extract the SQL statements between "-- +goose Up" and "-- +goose Down"
-            UP_SQL=$(sed -n '/-- +goose Up/,/-- +goose Down/p' "$SQL_FILE" | grep -v -- "-- +goose")
-            
-            # Execute the SQL against the Turso database
-            echo "$UP_SQL" | libsql-cli "$DATABASE_URL"
-            
-            echo "Migration from $SQL_FILE completed"
-          done
+          # Create schema tables directly if they don't exist already
+          # Users table
+          libsql-cli "$DATABASE_URL" "CREATE TABLE IF NOT EXISTS users (
+              id TEXT PRIMARY KEY,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              name TEXT NOT NULL,
+              api_key TEXT UNIQUE NOT NULL
+          );"
           
-          echo "All migrations completed!"
-          EOF
+          # Notes table
+          libsql-cli "$DATABASE_URL" "CREATE TABLE IF NOT EXISTS notes (
+              id TEXT PRIMARY KEY,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              note TEXT NOT NULL,
+              user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+          );"
           
-          chmod +x ./direct-migrate.sh
-          ./direct-migrate.sh
+          echo "Database schema verified/created!"
         shell: bash
       
       - name: Authenticate to Google Cloud
